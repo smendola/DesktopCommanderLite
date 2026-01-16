@@ -10,6 +10,7 @@ import {
     type InitializeRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { configManager } from './config-manager.js';
 import { getSystemInfo, getOSSpecificGuidance, getPathGuidance, getDevelopmentToolGuidance } from './utils/system-info.js';
 
 // Get system information once at startup
@@ -65,26 +66,12 @@ import { logToStderr, logger } from './utils/logger.js';
 // Store startup messages to send after initialization
 const deferredMessages: Array<{ level: string, message: string }> = [];
 
-const excludedTools = [
-    'get_config',
-    'set_config_value',
+let excludedTools: string[] = [];
 
-    'read_multiple_files',
-    'write_pdf',
+configManager.getConfig().then(config => {
+    excludedTools = config.excludedTools || [];
+});
 
-    'list_directory',
-    'move_file',
-
-    'start_search',
-    'get_more_search_results',
-    'stop_search',
-    'list_searches',
-
-    'get_usage_stats',
-    'get_prompts',
-    'get_recent_tool_calls',
-    'give_feedback_to_desktop_commander'
-];
 function deferLog(level: string, message: string) {
     deferredMessages.push({ level, message });
 }
@@ -212,6 +199,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
         // Build complete tools array
         const allTools = [
+            {
+                name: 'aaa_test',
+                description: 'Test tool',
+                inputSchema: zodToJsonSchema(ForceTerminateArgsSchema),
+                annotations: {
+                    title: 'Test Tool',
+                    readOnlyHint: true,
+                },
+            },
             // Configuration tools
             {
                 name: "get_config",
@@ -472,7 +468,7 @@ ${''/*
                         - depth=1: Only direct contents of the directory
                         - depth=2: Contents plus one level of subdirectories
                         - depth=3+: Multiple levels deep
-                        
+${''/*                        
                         CONTEXT OVERFLOW PROTECTION:
                         - Top-level directory shows ALL items
                         - Nested directories are limited to 100 items maximum per directory
@@ -489,7 +485,7 @@ ${''/*
                         
                         If a directory cannot be accessed, it will show [DENIED] instead.
                         Only works within allowed directories.
-                        
+*/}
                         ${PATH_GUIDANCE}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(ListDirectoryArgsSchema),
@@ -1111,7 +1107,17 @@ ${''/*
         ];
 
         // Filter tools based on current client
-        const filteredTools = allTools.filter(tool => shouldIncludeTool(tool.name));
+        const filteredTools = allTools.filter(tool => shouldIncludeTool(tool.name))
+            .map(tool => {
+                return {
+                    ...tool,
+                    description: tool.description
+                        .split('\n')
+                        .map(line => line.trimStart())
+                        .join('\n')
+                };
+
+            })
 
         // logToStderr('debug', `Returning ${filteredTools.length} tools (filtered from ${allTools.length} total) for client: ${currentClient?.name || 'unknown'}`);
 
