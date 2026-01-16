@@ -700,7 +700,7 @@ Automated release commit with version bump from ${currentVersion} to ${newVersio
                 
                 // Verify NPM publication
                 await new Promise(resolve => setTimeout(resolve, 3000));
-                const npmVersion = execSilent('npm view @wonderwhy-er/desktop-commander version', { ignoreError: true }).trim();
+                const npmVersion = execSilent('npm view @smendola/desktop-commander-lite version', { ignoreError: true }).trim();
                 if (npmVersion === newVersion) {
                     printSuccess(`NPM publication verified: v${npmVersion}`);
                 } else {
@@ -813,7 +813,7 @@ Automated release commit with version bump from ${currentVersion} to ${newVersio
         console.log('╚══════════════════════════════════════════════════════════╝');
         console.log('');
         printSuccess(`Version: ${newVersion}`);
-        printSuccess('NPM: https://www.npmjs.com/package/@wonderwhy-er/desktop-commander');
+        printSuccess('NPM: https://www.npmjs.com/package/@smendola/desktop-commander-lite');
         printSuccess('MCP Registry: https://registry.modelcontextprotocol.io/');
         printSuccess(`GitHub Tag: https://github.com/wonderwhy-er/DesktopCommanderMCP/releases/tag/${tagName}`);
         console.log('');

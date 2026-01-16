@@ -64,6 +64,27 @@ import { logToStderr, logger } from './utils/logger.js';
 
 // Store startup messages to send after initialization
 const deferredMessages: Array<{ level: string, message: string }> = [];
+
+const excludedTools = [
+    'get_config',
+    'set_config_value',
+
+    'read_multiple_files',
+    'write_pdf',
+
+    'list_directory',
+    'move_file',
+
+    'start_search',
+    'get_more_search_results',
+    'stop_search',
+    'list_searches',
+
+    'get_usage_stats',
+    'get_prompts',
+    'get_recent_tool_calls',
+    'give_feedback_to_desktop_commander'
+];
 function deferLog(level: string, message: string) {
     deferredMessages.push({ level, message });
 }
@@ -131,7 +152,7 @@ server.setRequestHandler(InitializeRequestSchema, async (request: InitializeRequ
 
             // Defer client connection message until after initialization
             deferLog('info', `Client connected: ${currentClient.name} v${currentClient.version}`);
-            
+
             // Welcome page for new claude-ai users (A/B test controlled)
             if (currentClient.name === 'claude-ai' && !(global as any).disableOnboarding) {
                 await handleWelcomePageOnboarding();
@@ -171,6 +192,11 @@ deferLog('info', 'Setting up request handlers...');
 function shouldIncludeTool(toolName: string): boolean {
     // Exclude give_feedback_to_desktop_commander for desktop-commander client
     if (toolName === 'give_feedback_to_desktop_commander' && currentClient?.name === 'desktop-commander') {
+        return false;
+    }
+
+    // Check if tool is in excluded list
+    if (excludedTools.includes(toolName)) {
         return false;
     }
 
@@ -259,16 +285,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         - offset: 100, length: 5    → Lines 100-104
                         - offset: -20               → Last 20 lines  
                         - offset: -5, length: 10    → Last 5 lines (length ignored)
-                        
+${''/*
                         Performance optimizations:
                         - Large files with negative offsets use reverse reading for efficiency
                         - Large files with deep positive offsets use byte estimation
                         - Small files use fast readline streaming
-                        
+*/}
                         When reading from the file system, only works within allowed directories.
                         Can fetch content from URLs when isUrl parameter is set to true
                         (URLs are always read in full regardless of offset/length).
-                        
+${''/*                        
                         FORMAT HANDLING (by extension):
                         - Text: Uses offset/length for line-based pagination
                         - Excel (.xlsx, .xls, .xlsm): Returns JSON 2D array
@@ -279,7 +305,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         - PDF: Extracts text content as markdown with page structure
                           * offset/length work as page pagination (0-based)
                           * Includes embedded images when available
-
+*/}
                         ${PATH_GUIDANCE}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(ReadFileArgsSchema),
@@ -314,7 +340,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 description: `
                         Write or append to file contents.
 
-                        IMPORTANT: DO NOT use this tool to create PDF files. Use 'write_pdf' for all PDF creation tasks.
+                        // IMPORTANT: DO NOT use this tool to create PDF files. Use 'write_pdf' for all PDF creation tasks.
 
                         CHUNKING IS STANDARD PRACTICE: Always write files in chunks of 25-30 lines maximum.
                         This is the normal, recommended way to write files - not an emergency measure.
@@ -336,7 +362,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         1. Read the file to see what was successfully written
                         2. Continue writing ONLY the remaining content using {mode: 'append'}
                         3. Keep chunks to 25-30 lines each
-
+${''/*
                         FORMAT HANDLING (by extension):
                         - Text files: String content
                         - Excel (.xlsx, .xls, .xlsm): JSON 2D array or {"SheetName": [[...]]}
@@ -344,7 +370,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
                         Files over 50 lines will generate performance notes but are still written successfully.
                         Only works within allowed directories.
-
+*/}
                         ${PATH_GUIDANCE}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(WriteFileArgsSchema),
@@ -744,6 +770,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         4. interact_with_process(pid, "print(df.describe())")
                         5. Continue analysis with pandas, matplotlib, seaborn, etc.
                         
+${''/*
                         COMMON FILE ANALYSIS PATTERNS:
                         • start_process("python3 -i") → Python REPL for data analysis (RECOMMENDED)
                         • start_process("node -i") → Node.js REPL for JSON processing
@@ -764,7 +791,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         5. Use read_process_output() to get responses
                         When Python is unavailable, prefer Node.js over shell for calculations.
                         Node.js: Always use ES import syntax (import x from 'y'), not require().
-
+*/}
                         SMART DETECTION:
                         - Detects REPL prompts (>>>, >, $, etc.)
                         - Identifies when process is waiting for input
@@ -775,7 +802,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         Process waiting for input (shows prompt)
                         Process finished execution
                         Process running (use read_process_output)
-
+${''/*
                         PERFORMANCE DEBUGGING (verbose_timing parameter):
                         Set verbose_timing: true to get detailed timing information including:
                         - Exit reason (early_exit_quick_pattern, early_exit_periodic_check, process_exit, timeout)
@@ -786,6 +813,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
                         ALWAYS USE FOR: Local file analysis, CSV processing, data exploration, system commands
                         NEVER USE ANALYSIS TOOL FOR: Local file access (analysis tool is browser-only and WILL FAIL)
+*/}
 
                         ${PATH_GUIDANCE}
                         ${CMD_PREFIX_DESCRIPTION}`,
@@ -815,7 +843,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         - offset: 500, length: 50    → Lines 500-549 (absolute position)
                         - offset: -20                → Last 20 lines (tail)
                         - offset: -50, length: 10    → Start 50 from end, read 10 lines
-                        
+${''/*                        
                         OUTPUT PROTECTION:
                         - Uses same fileReadLineLimit as read_file (default: 1000 lines)
                         - Returns status like: [Reading 100 lines from line 0 (total: 5000 lines, 4900 remaining)]
@@ -830,7 +858,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         Process waiting for input (ready for interact_with_process)
                         Process finished execution
                         Timeout reached (may still be running)
-
+*/}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(ReadProcessOutputArgsSchema),
                 annotations: {
@@ -842,7 +870,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 name: "interact_with_process",
                 description: `
                         Send input to a running process and automatically receive the response.
-                        
+${''/*
                         CRITICAL: THIS IS THE PRIMARY TOOL FOR ALL LOCAL FILE ANALYSIS
                         For ANY local file analysis (CSV, JSON, data processing), ALWAYS use this instead of the analysis tool.
                         The analysis tool CANNOT access local files and WILL FAIL - use processes for ALL file-based work.
@@ -861,7 +889,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         
                         BINARY FILE PROCESSING WORKFLOWS:
                         Use appropriate Python libraries (PyPDF2, pandas, docx2txt, etc.) or command-line tools for binary file analysis.
-                        
+*/}
+                        ${CMD_PREFIX_DESCRIPTION}
                         SMART DETECTION:
                         - Automatically waits for REPL prompt (>>>, >, etc.)
                         - Detects errors and completion states
@@ -884,7 +913,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         - verbose_timing: Enable detailed performance telemetry (default: false)
 
                         Returns execution result with status indicators.
-
+${''/*                        
                         PERFORMANCE DEBUGGING (verbose_timing parameter):
                         Set verbose_timing: true to get detailed timing information including:
                         - Exit reason (early_exit_quick_pattern, early_exit_periodic_check, process_finished, timeout, no_wait)
@@ -895,7 +924,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
                         ALWAYS USE FOR: CSV analysis, JSON processing, file statistics, data visualization prep, ANY local file work
                         NEVER USE ANALYSIS TOOL FOR: Local file access (it cannot read files from disk and WILL FAIL)
-
+*/}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(InteractWithProcessArgsSchema),
                 annotations: {
@@ -923,7 +952,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 name: "list_sessions",
                 description: `
                         List all active terminal sessions.
-                        
+${''/*  
                         Shows session status including:
                         - PID: Process identifier  
                         - Blocked: Whether session is waiting for input
@@ -933,7 +962,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         - "Blocked: true" often means REPL is waiting for input
                         - Use this to verify sessions are running before sending input
                         - Long runtime with blocked status may indicate stuck process
-                        
+*/}
                         ${CMD_PREFIX_DESCRIPTION}`,
                 inputSchema: zodToJsonSchema(ListSessionsArgsSchema),
                 annotations: {
@@ -1073,13 +1102,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         The prompt content will be injected and execution begins immediately.
 
                         ${CMD_PREFIX_DESCRIPTION}`,
-                    inputSchema: zodToJsonSchema(GetPromptsArgsSchema),
-                    annotations: {
-                        title: "Get Prompts",
-                        readOnlyHint: true,
-                    },
-                }
-            ];
+                inputSchema: zodToJsonSchema(GetPromptsArgsSchema),
+                annotations: {
+                    title: "Get Prompts",
+                    readOnlyHint: true,
+                },
+            }
+        ];
 
         // Filter tools based on current client
         const filteredTools = allTools.filter(tool => shouldIncludeTool(tool.name));
