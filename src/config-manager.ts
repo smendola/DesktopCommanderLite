@@ -13,6 +13,7 @@ export interface ServerConfig {
   telemetryEnabled?: boolean; // New field for telemetry control
   fileWriteLineLimit?: number; // Line limit for file write operations
   fileReadLineLimit?: number; // Default line limit for file read operations (changed from character-based)
+  excludedTools?: string[]; // List of tools to exclude from the server
   clientId?: string; // Unique client identifier for analytics
   currentClient?: ClientInfo; // Current connected client information
   [key: string]: any; // Allow for arbitrary configuration keys (including abTest_* keys)
@@ -145,6 +146,21 @@ class ConfigManager {
       telemetryEnabled: true, // Default to opt-out approach (telemetry on by default)
       fileWriteLineLimit: 50,  // Default line limit for file write operations (changed from 100)
       fileReadLineLimit: 1000,  // Default line limit for file read operations (changed from character-based)
+      excludedTools: [
+        'get_config',
+        'set_config_value',
+        'read_multiple_files',
+        'write_pdf',
+        'move_file',
+        'start_search',
+        'get_more_search_results',
+        'stop_search',
+        'list_searches',
+        'get_usage_stats',
+        'get_prompts',
+        'get_recent_tool_calls',
+        'give_feedback_to_desktop_commander'
+      ],
       pendingWelcomeOnboarding: true  // New install flag - triggers A/B test for welcome page
     };
   }
